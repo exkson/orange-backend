@@ -21,8 +21,8 @@ class Devices:
     def loads(cls):
         with open(Path(__file__).parent.joinpath("credentials")) as f:
             for line in f:
-                token, customer_name = line.strip().split(",")
-                cls._devices[token] = customer_name
+                token, id, customer_name = line.strip().split(",")
+                cls._devices[token] = (id, customer_name)
 
 
 app = Starlette(lifespan=lifespan)
@@ -30,10 +30,11 @@ app = Starlette(lifespan=lifespan)
 
 @app.route("/logs", methods=["POST"])
 async def logs(request: Request):
-    token = request.headers.get("X-Device-Token")
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
     if token not in Devices._devices:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    location = Path(__file__).parent.joinpath("static", "logs", f"{token}.log")
+    id, _ = Devices._devices[token]
+    location = Path(__file__).parent.joinpath("static", "logs", f"{id}.log")
     async with request.form(max_files=1) as form:
         with location.open("a") as out:
             while chunk := await form["file"].read(chunk_size):
@@ -43,10 +44,11 @@ async def logs(request: Request):
 
 @app.route("/db", methods=["POST"])
 async def db(request: Request):
-    token = request.headers.get("X-Device-Token")
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
     if token not in Devices._devices:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    location = Path(__file__).parent.joinpath("static", "db", f"{token}.db")
+    id, _ = Devices._devices[token]
+    location = Path(__file__).parent.joinpath("static", "db", f"{id}.db")
 
     async with request.form(max_files=1) as form:
         with location.open("wb") as out:

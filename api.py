@@ -28,6 +28,11 @@ class Devices:
 app = Starlette(lifespan=lifespan)
 
 
+@app.route("/", methods=["GET"])
+async def index(request: Request):
+    return JSONResponse({"message": "Hello, World!"})
+
+
 @app.route("/logs", methods=["POST"])
 async def logs(request: Request):
     token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
